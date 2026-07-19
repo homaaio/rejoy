@@ -1,3 +1,4 @@
+# src/linux/joystick_reader.py
 import os
 import struct
 import fcntl
@@ -16,7 +17,6 @@ class JoystickReader:
             'square': False, 'l1': False, 'r1': False,
             'l2': False, 'r2': False, 'l3': False, 'r3': False,
             'select': False, 'start': False, 'ps': False,
-            'dpad': (0, 0),
         }
         self._find_device()
     
@@ -30,12 +30,10 @@ class JoystickReader:
                     flags = fcntl.fcntl(self.device, fcntl.F_GETFL)
                     fcntl.fcntl(self.device, fcntl.F_SETFL, flags | os.O_NONBLOCK)
                     self.connected = True
-                    print(f'Found joystick: {path}')
                     return
                 except:
                     pass
         
-        # Try by-id
         try:
             by_id = '/dev/input/by-id/'
             if os.path.exists(by_id):
@@ -48,7 +46,6 @@ class JoystickReader:
                         flags = fcntl.fcntl(self.device, fcntl.F_GETFL)
                         fcntl.fcntl(self.device, fcntl.F_SETFL, flags | os.O_NONBLOCK)
                         self.connected = True
-                        print(f'Found joystick: {real}')
                         return
         except:
             pass
@@ -66,9 +63,9 @@ class JoystickReader:
                 
                 time, value, type_, number = struct.unpack('IhBB', data)
                 
-                if type_ & 0x02:  # Axis
+                if type_ & 0x02:
                     self._handle_axis(number, value)
-                elif type_ & 0x01:  # Button
+                elif type_ & 0x01:
                     self._handle_button(number, value)
         except BlockingIOError:
             pass
