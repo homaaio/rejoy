@@ -1,6 +1,7 @@
 // src/windows/MainForm.cs
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -111,44 +112,47 @@ namespace DualKey
 
         private void BuildMenu()
         {
-            MenuStrip menuStrip = new MenuStrip();
-            menuStrip.BackColor = Color.FromArgb(24, 24, 48);
-            menuStrip.ForeColor = Color.White;
+            MenuStrip menuStrip = new MenuStrip
+            {
+                BackColor = Color.FromArgb(24, 24, 48),
+                ForeColor = Color.White,
+                Renderer = new ToolStripProfessionalRenderer(new CustomColorTable())
+                {
+                    RoundedEdges = false
+                }
+            };
 
-            // File menu
             ToolStripMenuItem fileMenu = new ToolStripMenuItem("File");
-            ToolStripMenuItem saveItem = new ToolStripMenuItem("Save configuration (.hrc)", null, OnSaveConfig, Keys.Control | Keys.S);
-            ToolStripMenuItem loadItem = new ToolStripMenuItem("Import configuration (.hrc)", null, OnLoadConfig, Keys.Control | Keys.O);
-            ToolStripMenuItem exitItem = new ToolStripMenuItem("Exit", null, (s, e) => { Log("Application exit."); Application.Exit(); });
-            fileMenu.DropDownItems.AddRange(new ToolStripItem[] { saveItem, loadItem, new ToolStripSeparator(), exitItem });
+            fileMenu.DropDownItems.AddRange(new ToolStripItem[] {
+                new ToolStripMenuItem("Save configuration (.hrc)", null, OnSaveConfig, Keys.Control | Keys.S),
+                new ToolStripMenuItem("Import configuration (.hrc)", null, OnLoadConfig, Keys.Control | Keys.O),
+                new ToolStripSeparator(),
+                new ToolStripMenuItem("Exit", null, (s, e) => { Log("Application exit."); Application.Exit(); })
+            });
 
-            // Settings menu
             ToolStripMenuItem settingsMenu = new ToolStripMenuItem("Settings");
-            ToolStripMenuItem openSettingsItem = new ToolStripMenuItem("Open settings", null, OnOpenSettings, Keys.Control | Keys.P);
-            ToolStripMenuItem clearSettingsItem = new ToolStripMenuItem("Clear all settings", null, OnClearSettings, Keys.Control | Keys.Shift | Keys.R);
-            settingsMenu.DropDownItems.AddRange(new ToolStripItem[] { openSettingsItem, new ToolStripSeparator(), clearSettingsItem });
+            settingsMenu.DropDownItems.AddRange(new ToolStripItem[] {
+                new ToolStripMenuItem("Open settings", null, OnOpenSettings, Keys.Control | Keys.P),
+                new ToolStripSeparator(),
+                new ToolStripMenuItem("Clear all settings", null, OnClearSettings, Keys.Control | Keys.Shift | Keys.R)
+            });
 
             menuStrip.Items.Add(fileMenu);
             menuStrip.Items.Add(settingsMenu);
-
             this.MainMenuStrip = menuStrip;
             this.Controls.Add(menuStrip);
-            this.Controls.SetChildIndex(menuStrip, 0); // always on top
-
-            // Adjust positions
-            if (topPanel != null) topPanel.Top = menuStrip.Height;
-            if (mainPanel != null) mainPanel.Top = (topPanel?.Bottom ?? menuStrip.Height);
         }
 
         private void InitializeUI()
         {
             this.Text = "DualKey - DualShock 3 Emulator";
-            this.Size = new Size(800, 600);
-            this.MinimumSize = new Size(800, 600);
+            this.Size = new Size(820, 640);
+            this.MinimumSize = new Size(820, 640);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.BackColor = Color.FromArgb(18, 18, 36);
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
+            this.Padding = new Padding(0);
 
             CreateTopPanel();
             CreateMainPanel();
@@ -159,24 +163,24 @@ namespace DualKey
         {
             topPanel = new Panel
             {
-                Dock = DockStyle.Top,
-                Height = 80,
+                Location = new Point(0, 24),
+                Size = new Size(this.ClientSize.Width, 80),
                 BackColor = Color.FromArgb(24, 24, 48),
             };
 
             titleLabel = new Label
             {
                 Text = "DualKey Controller",
-                Font = new Font("Segoe UI", 20, FontStyle.Bold),
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
                 ForeColor = Color.FromArgb(255, 69, 96),
-                Location = new Point(20, 15),
+                Location = new Point(20, 18),
                 Size = new Size(300, 40),
             };
 
             statusLabel = new Label
             {
                 Text = "Searching for DualShock 3...",
-                Font = new Font("Segoe UI", 9),
+                Font = new Font("Segoe UI", 9, FontStyle.Regular),
                 ForeColor = Color.FromArgb(150, 150, 170),
                 Location = new Point(20, 55),
                 Size = new Size(400, 20),
@@ -185,15 +189,16 @@ namespace DualKey
             topPanel.Controls.Add(titleLabel);
             topPanel.Controls.Add(statusLabel);
             this.Controls.Add(topPanel);
+            topPanel.BringToFront();
         }
 
         private void CreateMainPanel()
         {
             mainPanel = new Panel
             {
-                Dock = DockStyle.Fill,
+                Location = new Point(0, topPanel.Bottom),
+                Size = new Size(this.ClientSize.Width, this.ClientSize.Height - topPanel.Height - 25),
                 BackColor = Color.FromArgb(18, 18, 36),
-                Padding = new Padding(20, 10, 20, 10),
             };
 
             CreateSticksPanel();
@@ -212,6 +217,7 @@ namespace DualKey
                 Size = new Size(420, 400),
                 BackColor = Color.FromArgb(28, 28, 52),
             };
+            RoundedCorners(sticksPanel, 12);
 
             Label sticksTitle = new Label
             {
@@ -295,6 +301,7 @@ namespace DualKey
                 Size = new Size(310, 400),
                 BackColor = Color.FromArgb(28, 28, 52),
             };
+            RoundedCorners(rightPanel, 12);
 
             CreateEmulationGroup();
             CreateButtonsGroup();
@@ -399,6 +406,7 @@ namespace DualKey
                     TextAlign = ContentAlignment.MiddleCenter,
                     Margin = new Padding(3),
                 };
+                RoundedCorners(btnLabel, 6);
                 buttonLabels.Add(btnLabel);
                 buttonsPanel.Controls.Add(btnLabel);
             }
@@ -415,6 +423,7 @@ namespace DualKey
                 Cursor = Cursors.Hand,
             };
             hideButton.FlatAppearance.BorderSize = 0;
+            RoundedCorners(hideButton, 8);
             hideButton.Click += (s, e) =>
             {
                 if (!hider.IsHidden)
@@ -455,6 +464,7 @@ namespace DualKey
                 Cursor = Cursors.Hand,
             };
             webButton.FlatAppearance.BorderSize = 0;
+            RoundedCorners(webButton, 8);
             webButton.Click += (s, e) =>
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
@@ -471,8 +481,9 @@ namespace DualKey
         {
             statusBar = new Label
             {
-                Dock = DockStyle.Bottom,
-                Height = 25,
+                Dock = DockStyle.None,
+                Location = new Point(0, this.ClientSize.Height - 25),
+                Size = new Size(this.ClientSize.Width, 25),
                 BackColor = Color.FromArgb(24, 24, 48),
                 ForeColor = Color.FromArgb(120, 120, 140),
                 Text = "  Web interface: http://localhost:8080  |  Run as Administrator to hide controller",
@@ -480,11 +491,23 @@ namespace DualKey
                 TextAlign = ContentAlignment.MiddleLeft,
             };
             this.Controls.Add(statusBar);
+            statusBar.BringToFront();
+        }
+
+        private void RoundedCorners(Control control, int radius)
+        {
+            GraphicsPath path = new GraphicsPath();
+            path.AddArc(0, 0, radius * 2, radius * 2, 180, 90);
+            path.AddArc(control.Width - radius * 2, 0, radius * 2, radius * 2, 270, 90);
+            path.AddArc(control.Width - radius * 2, control.Height - radius * 2, radius * 2, radius * 2, 0, 90);
+            path.AddArc(0, control.Height - radius * 2, radius * 2, radius * 2, 90, 90);
+            path.CloseFigure();
+            control.Region = new Region(path);
         }
 
         private void DrawStick(Graphics g, bool isLeft)
         {
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
 
             int w = isLeft ? leftStickPanel.Width : rightStickPanel.Width;
             int h = isLeft ? leftStickPanel.Height : rightStickPanel.Height;
@@ -709,6 +732,17 @@ namespace DualKey
             webServer?.Stop();
             Log("Application closed.");
             base.OnFormClosing(e);
+        }
+
+        private class CustomColorTable : ProfessionalColorTable
+        {
+            public override Color MenuItemSelected => Color.FromArgb(255, 69, 96);
+            public override Color MenuItemBorder => Color.Transparent;
+            public override Color MenuBorder => Color.FromArgb(40, 40, 60);
+            public override Color MenuItemPressedGradientBegin => Color.FromArgb(255, 69, 96);
+            public override Color MenuItemPressedGradientEnd => Color.FromArgb(220, 50, 80);
+            public override Color MenuStripGradientBegin => Color.FromArgb(24, 24, 48);
+            public override Color MenuStripGradientEnd => Color.FromArgb(24, 24, 48);
         }
     }
 }
