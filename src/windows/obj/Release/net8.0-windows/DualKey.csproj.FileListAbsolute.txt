@@ -12,3 +12,4 @@ C:\Users\Hsa\0000000000000000000000\dualkey\src\windows\obj\Release\net8.0-windo
 C:\Users\Hsa\0000000000000000000000\dualkey\src\windows\obj\Release\net8.0-windows\DualKey.pdb
 C:\Users\Hsa\0000000000000000000000\dualkey\src\windows\obj\Release\net8.0-windows\DualKey.genruntimeconfig.cache
 C:\Users\Hsa\0000000000000000000000\dualkey\src\windows\obj\Release\net8.0-windows\ref\DualKey.dll
+C:\Users\Hsa\0000000000000000000000\dualkey\src\windows\obj\Release\net8.0-windows\DualKey.sourcelink.json

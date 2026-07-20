@@ -5,6 +5,8 @@ using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 
 namespace DualKey
 {
@@ -64,6 +66,8 @@ namespace DualKey
         private bool connected;
         private List<Label> buttonLabels;
 
+        private static readonly string LogFile = "dualkey.log";
+
         private readonly string[] buttonNames = {
             "Cross", "Circle", "Triangle", "Square",
             "L1", "R1", "L2", "R2",
@@ -76,6 +80,8 @@ namespace DualKey
             hider = new JoystickHider();
             buttonLabels = new List<Label>();
 
+            Log("Application starting...");
+
             Task.Run(async () =>
             {
                 webServer = new WebServer(GetJsonData);
@@ -83,6 +89,8 @@ namespace DualKey
             });
 
             InitializeUI();
+            BuildMenu();
+            Log("UI initialized.");
 
             updateTimer = new Timer();
             updateTimer.Interval = 16;
@@ -90,9 +98,51 @@ namespace DualKey
             updateTimer.Start();
         }
 
+        private static void Log(string message)
+        {
+            string logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
+            try
+            {
+                File.AppendAllText(LogFile, logEntry + Environment.NewLine);
+            }
+            catch { }
+            System.Diagnostics.Debug.WriteLine(logEntry);
+        }
+
+        private void BuildMenu()
+        {
+            MenuStrip menuStrip = new MenuStrip();
+            menuStrip.BackColor = Color.FromArgb(24, 24, 48);
+            menuStrip.ForeColor = Color.White;
+
+            // File menu
+            ToolStripMenuItem fileMenu = new ToolStripMenuItem("File");
+            ToolStripMenuItem saveItem = new ToolStripMenuItem("Save configuration (.hrc)", null, OnSaveConfig, Keys.Control | Keys.S);
+            ToolStripMenuItem loadItem = new ToolStripMenuItem("Import configuration (.hrc)", null, OnLoadConfig, Keys.Control | Keys.O);
+            ToolStripMenuItem exitItem = new ToolStripMenuItem("Exit", null, (s, e) => { Log("Application exit."); Application.Exit(); });
+            fileMenu.DropDownItems.AddRange(new ToolStripItem[] { saveItem, loadItem, new ToolStripSeparator(), exitItem });
+
+            // Settings menu
+            ToolStripMenuItem settingsMenu = new ToolStripMenuItem("Settings");
+            ToolStripMenuItem openSettingsItem = new ToolStripMenuItem("Open settings", null, OnOpenSettings, Keys.Control | Keys.P);
+            ToolStripMenuItem clearSettingsItem = new ToolStripMenuItem("Clear all settings", null, OnClearSettings, Keys.Control | Keys.Shift | Keys.R);
+            settingsMenu.DropDownItems.AddRange(new ToolStripItem[] { openSettingsItem, new ToolStripSeparator(), clearSettingsItem });
+
+            menuStrip.Items.Add(fileMenu);
+            menuStrip.Items.Add(settingsMenu);
+
+            this.MainMenuStrip = menuStrip;
+            this.Controls.Add(menuStrip);
+            this.Controls.SetChildIndex(menuStrip, 0); // always on top
+
+            // Adjust positions
+            if (topPanel != null) topPanel.Top = menuStrip.Height;
+            if (mainPanel != null) mainPanel.Top = (topPanel?.Bottom ?? menuStrip.Height);
+        }
+
         private void InitializeUI()
         {
-            this.Text = "ReJoy - DualShock 3 Emulator";
+            this.Text = "DualKey - DualShock 3 Emulator";
             this.Size = new Size(800, 600);
             this.MinimumSize = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -116,7 +166,7 @@ namespace DualKey
 
             titleLabel = new Label
             {
-                Text = "ReJoy Controller",
+                Text = "DualKey Controller",
                 Font = new Font("Segoe UI", 20, FontStyle.Bold),
                 ForeColor = Color.FromArgb(255, 69, 96),
                 Location = new Point(20, 15),
@@ -373,11 +423,13 @@ namespace DualKey
                     {
                         hideButton.Text = "Show Controller";
                         hideButton.BackColor = Color.FromArgb(0, 200, 100);
+                        Log("Controller hidden.");
                     }
                     else
                     {
-                        MessageBox.Show("Failed to hide controller. Run as Administrator.",
-                            "ReJoy", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("Failed to hide controller. Run as Administrator.", "DualKey",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        Log("Failed to hide controller (not admin).");
                     }
                 }
                 else
@@ -386,6 +438,7 @@ namespace DualKey
                     {
                         hideButton.Text = "Hide Controller";
                         hideButton.BackColor = Color.FromArgb(255, 170, 0);
+                        Log("Controller shown.");
                     }
                 }
             };
@@ -443,20 +496,17 @@ namespace DualKey
             float x = isLeft ? leftX : rightX;
             float y = isLeft ? leftY : rightY;
 
-            // Background circle
             using (Pen pen = new Pen(Color.FromArgb(60, 60, 80), 2))
             {
                 g.DrawEllipse(pen, cx - r, cy - r, r * 2, r * 2);
             }
 
-            // Cross lines
             using (Pen pen = new Pen(Color.FromArgb(40, 40, 60), 1))
             {
                 g.DrawLine(pen, cx - r, cy, cx + r, cy);
                 g.DrawLine(pen, cx, cy - r, cx, cy + r);
             }
 
-            // Stick position
             int dotX = cx + (int)(x * r) - 8;
             int dotY = cy + (int)(y * r) - 8;
 
@@ -465,7 +515,6 @@ namespace DualKey
                 g.FillEllipse(brush, dotX, dotY, 16, 16);
             }
 
-            // Outer ring
             using (Pen pen = new Pen(color, 2))
             {
                 g.DrawEllipse(pen, dotX - 2, dotY - 2, 20, 20);
@@ -497,7 +546,6 @@ namespace DualKey
                     leftStickValue.Text = $"X: {leftX,6:F2}  Y: {leftY,6:F2}";
                     rightStickValue.Text = $"X: {rightX,6:F2}  Y: {rightY,6:F2}";
 
-                    // Update button indicators
                     for (int i = 0; i < buttonLabels.Count; i++)
                     {
                         bool pressed = (buttons & (1 << i)) != 0;
@@ -509,7 +557,6 @@ namespace DualKey
                             : Color.FromArgb(150, 150, 170);
                     }
 
-                    // Emulation
                     if (emulator.Enabled)
                     {
                         float dz = emulator.Deadzone;
@@ -531,8 +578,9 @@ namespace DualKey
                     buttons = 0;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Log($"Error reading joystick: {ex.Message}");
                 connected = false;
             }
         }
@@ -566,11 +614,100 @@ namespace DualKey
                    "}";
         }
 
+        private void OnSaveConfig(object sender, EventArgs e)
+        {
+            Log("Saving configuration...");
+            SaveFileDialog sfd = new SaveFileDialog
+            {
+                Filter = "DualKey Config (*.hrc)|*.hrc",
+                DefaultExt = "hrc",
+                FileName = "dualkey_config.hrc"
+            };
+            if (sfd.ShowDialog() == DialogResult.OK)
+            {
+                var config = new Dictionary<string, object>
+                {
+                    ["deadzone"] = emulator.Deadzone,
+                    ["bindings"] = emulator.Bindings
+                };
+                string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(sfd.FileName, json);
+                Log($"Configuration saved to {sfd.FileName}");
+                MessageBox.Show("Configuration saved.", "DualKey", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void OnLoadConfig(object sender, EventArgs e)
+        {
+            Log("Loading configuration...");
+            OpenFileDialog ofd = new OpenFileDialog
+            {
+                Filter = "DualKey Config (*.hrc)|*.hrc",
+                DefaultExt = "hrc"
+            };
+            if (ofd.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    string json = File.ReadAllText(ofd.FileName);
+                    var config = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                    if (config != null)
+                    {
+                        if (config.ContainsKey("deadzone"))
+                        {
+                            float dz = float.Parse(config["deadzone"].ToString());
+                            emulator.Deadzone = dz;
+                            deadzoneSlider.Value = (int)(dz * 50);
+                            deadzoneValue.Text = dz.ToString("F2");
+                        }
+                        if (config.ContainsKey("bindings"))
+                        {
+                            var bindings = JsonSerializer.Deserialize<Dictionary<string, int>>(config["bindings"].ToString());
+                            if (bindings != null)
+                                emulator.Bindings = bindings;
+                        }
+                        Log($"Configuration loaded from {ofd.FileName}");
+                        MessageBox.Show("Configuration loaded.", "DualKey", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"Error loading config: {ex.Message}");
+                    MessageBox.Show($"Error loading config: {ex.Message}", "DualKey", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void OnOpenSettings(object sender, EventArgs e)
+        {
+            Log("Opening settings.");
+            using (var settingsForm = new SettingsForm(emulator))
+            {
+                settingsForm.ShowDialog(this);
+            }
+        }
+
+        private void OnClearSettings(object sender, EventArgs e)
+        {
+            Log("Clearing settings.");
+            var result = MessageBox.Show("Reset all settings to defaults?", "DualKey", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result == DialogResult.Yes)
+            {
+                emulator.ResetBindings();
+                emulator.Deadzone = 0.3f;
+                deadzoneSlider.Value = (int)(emulator.Deadzone * 50);
+                deadzoneValue.Text = emulator.Deadzone.ToString("F2");
+                Log("Settings cleared to defaults.");
+                MessageBox.Show("Settings cleared.", "DualKey", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             updateTimer?.Stop();
             emulator?.ReleaseAll();
             webServer?.Stop();
+            Log("Application closed.");
             base.OnFormClosing(e);
         }
     }
