@@ -116,6 +116,8 @@ namespace DualKey
 
             ToolStripMenuItem settingsMenu = new ToolStripMenuItem("Settings");
             settingsMenu.DropDownItems.Add("Open settings", null, OnOpenSettings);
+            settingsMenu.DropDownItems.Add("Edit Gamepad...", null, OnEditGamepad);
+            settingsMenu.DropDownItems.Add(new ToolStripSeparator());
             settingsMenu.DropDownItems.Add("Clear all settings", null, OnClearSettings);
 
             menuStrip.Items.Add(fileMenu);
@@ -639,6 +641,18 @@ namespace DualKey
                     indicatorColors = sf.IndicatorColors;
                     indicatorTimer.Interval = indicatorSpeed;
                     Log("Settings updated.");
+                }
+            }
+        }
+
+        private void OnEditGamepad(object sender, EventArgs e)
+        {
+            using (var gf = new GamepadEditorForm(emulator))
+            {
+                if (gf.ShowDialog(this) == DialogResult.OK)
+                {
+                    playerBindings[currentPlayer] = new Dictionary<string, int>(emulator.Bindings);
+                    Log("Gamepad layout bindings updated.");
                 }
             }
         }

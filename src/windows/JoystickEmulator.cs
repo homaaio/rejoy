@@ -77,8 +77,10 @@ namespace DualKey
 
         public void UpdateBinding(string action, int keyCode)
         {
-            if (Bindings.ContainsKey(action))
-                Bindings[action] = keyCode;
+            // Using the indexer (rather than requiring the key to already exist) means
+            // actions like "dpad_up" - which aren't in the default dictionary above -
+            // can still be bound, e.g. from the gamepad layout editor.
+            Bindings[action] = keyCode;
         }
 
         public void PressKey(string action)

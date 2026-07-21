@@ -36,13 +36,35 @@ namespace DualKey
         {
             this.emulator = emulator;
             this.Text = "DualKey Settings";
-            this.Size = new Size(500, 450);
+            this.Size = new Size(500, 500);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
+            this.Font = new Font("Segoe UI", 9f);
+
+            try { this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
+            catch { /* not critical */ }
 
             indicatorColors = new Color[] { Color.Red, Color.Red, Color.Red, Color.Red };
+
+            // ---- bottom OK/Cancel bar, like a native Windows settings dialog ----
+            var bottomPanel = new Panel { Dock = DockStyle.Bottom, Height = 48 };
+            var buttonFlow = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Right,
+                FlowDirection = FlowDirection.RightToLeft,
+                AutoSize = true,
+                WrapContents = false,
+                Padding = new Padding(0, 10, 12, 10)
+            };
+            var btnCancel = new Button { Text = "Cancel", Size = new Size(90, 28), DialogResult = DialogResult.Cancel };
+            var btnOk = new Button { Text = "OK", Size = new Size(90, 28), DialogResult = DialogResult.OK, Margin = new Padding(0, 0, 8, 0) };
+            buttonFlow.Controls.Add(btnCancel);
+            buttonFlow.Controls.Add(btnOk);
+            bottomPanel.Controls.Add(buttonFlow);
+            AcceptButton = btnOk;
+            CancelButton = btnCancel;
 
             tabControl = new TabControl { Dock = DockStyle.Fill };
             
@@ -53,7 +75,9 @@ namespace DualKey
             tabControl.TabPages.Add(bindingsPage);
             tabControl.TabPages.Add(sensitivityPage);
             tabControl.TabPages.Add(indicatorsPage);
-            
+
+            // Docking order matters: the Fill-docked control must be added last.
+            this.Controls.Add(bottomPanel);
             this.Controls.Add(tabControl);
 
             BuildBindingsPage();
