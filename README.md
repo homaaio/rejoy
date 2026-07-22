@@ -103,7 +103,7 @@ DualKey/
 
 - Language: C# / .NET 8.0
 - GUI Framework: Windows Forms
-- Controller Input: WinMM API (joyGetPosEx)
+- Controller Input: XInput (via SharpDX.XInput)
 - Keyboard Emulation: WinAPI (keybd_event)
 - Device Management: PowerShell via WMI
 - Web Server: HttpListener
@@ -119,18 +119,25 @@ DualKey/
 
 **Controller not detected:**
 - Ensure DualShock 3 is properly connected
-- Install required drivers (ScpToolkit or DsHidMini)
+- Install required drivers (ScpToolkit or DsHidMini) — DualKey talks to controllers via XInput only, so Windows must expose the device as an Xbox-style controller, not a raw HID device
+- If using DsHidMini: install ViGEmBus alongside it, then open the DsHidMini control app (DSHMC) and set that specific controller's mode to **XInput** (it isn't the default) — unplug and replug after changing it
+- Confirm it works at the Windows level first via "Set up USB game controllers" (`joy.cpl`) before assuming DualKey itself is at fault
 - Check Device Manager for unrecognized devices
 
 **Keyboard emulation not working:**
 - Verify the "Keyboard Emulation" checkbox is enabled
 - Try running the application as Administrator
 - Some applications may require the window to be in focus
+- Games that only read raw input, or that run anti-cheat, may not see `keybd_event`-based key presses at all — this is a Windows limitation, not something DualKey can work around
 
 **Cannot hide controller:**
 - Run DualKey as Administrator
 - Check if PowerShell execution policy allows scripts
 - Manually disable the device in Device Manager
+- If DualKey crashes while the controller is hidden, it's automatically re-enabled on the next launch/close; if it's still disabled, re-enable it manually in Device Manager
+
+**"Windows protected your PC" / SmartScreen warning on launch:**
+- The executable isn't code-signed, so this warning is expected on first run — click "More info" → "Run anyway"
 
 **Web interface not accessible:**
 - Ensure port 8080 is not blocked by firewall
