@@ -1,0 +1,5 @@
+welcome to changelog ^^
+
+VERSION - 1.0 [date.date.date]
+
+First version
