@@ -82,7 +82,7 @@ After launching:
 | PS Button | Escape |
 
 ## Project Structure
-
+```
 DualKey/
 ├── icons/              # Application icons
 │   └── app.ico
@@ -98,7 +98,7 @@ DualKey/
 ├── README.md           # Documentation
 ├── LICENSE             # MIT License
 └── .gitignore          # Git ignore rules
-
+```
 ## Technical Details
 
 - Language: C# / .NET 8.0
